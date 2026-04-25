@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EG-FR-2026-001 — Discount & Fee Architecture</title>
+  <style>
+    :root {
+      --purple: #6B21A8;
+      --purple-mid: #7C3AED;
+      --purple-light: #F3E8FF;
+      --blue: #1D4ED8;
+      --blue-light: #EFF6FF;
+      --orange: #EA580C;
+      --orange-light: #FFF7ED;
+      --gray-100: #F9FAFB;
+      --gray-200: #F3F4F6;
+      --gray-300: #E5E7EB;
+      --gray-400: #D1D5DB;
+      --gray-500: #6B7280;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --red: #DC2626;
+      --amber: #D97706;
+      --green: #059669;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--gray-900); background: #fff; font-size: 13.5px; line-height: 1.65; }
+    .doc-header { background: linear-gradient(135deg, #4C1D95 0%, #1D4ED8 100%); color: #fff; padding: 44px 64px 40px; }
+    .doc-header .badge { display: inline-block; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.3); padding: 4px 14px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 14px; }
+    .doc-header h1 { font-size: 30px; font-weight: 800; margin-bottom: 6px; }
+    .doc-header .subtitle { font-size: 14px; opacity: 0.8; margin-bottom: 22px; }
+    .doc-header .meta-row { display: flex; gap: 40px; flex-wrap: wrap; font-size: 12px; opacity: 0.75; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 18px; margin-top: 4px; }
+    .doc-header .meta-row span strong { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.7; margin-bottom: 2px; }
+    .doc-body { max-width: 980px; margin: 0 auto; padding: 52px 64px; }
+    .toc { background: var(--gray-100); border: 1px solid var(--gray-300); border-radius: 10px; padding: 24px 32px; margin-bottom: 52px; }
+    .toc h2 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--gray-500); margin-bottom: 14px; }
+    .toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 40px; }
+    .toc-grid a { color: var(--blue); text-decoration: none; font-size: 13px; padding: 3px 0; display: block; }
+    .toc-grid a:hover { text-decoration: underline; }
+    .toc-num { color: var(--gray-500); margin-right: 6px; font-size: 11px; }
+    .section { margin-bottom: 60px; }
+    .section-header { display: flex; align-items: center; gap: 12px; border-bottom: 2px solid var(--purple); padding-bottom: 10px; margin-bottom: 24px; }
+    .section-header h2 { font-size: 19px; font-weight: 700; color: var(--purple); }
+    .section-intro { color: var(--gray-500); font-size: 13px; margin-bottom: 26px; line-height: 1.7; }
+    .scenario { border: 1px solid var(--gray-300); border-radius: 10px; margin-bottom: 30px; overflow: hidden; }
+    .scenario-header { background: var(--gray-100); border-bottom: 1px solid var(--gray-300); padding: 14px 22px; display: flex; align-items: center; gap: 12px; }
+    .scenario-header h3 { font-size: 15px; font-weight: 600; }
+    .sbadge { font-size: 10px; font-weight: 800; letter-spacing: 0.07em; padding: 4px 11px; border-radius: 5px; color: #fff; white-space: nowrap; }
+    .sbadge.disc { background: var(--purple-mid); }
+    .sbadge.fee  { background: var(--orange); }
+    .sbadge.comb { background: var(--blue); }
+    .sbadge.edge { background: var(--gray-700); }
+    .scenario-body { padding: 22px 24px; }
+    .scenario-desc { color: var(--gray-700); margin-bottom: 20px; }
+    .scenario-desc p { margin-bottom: 6px; }
+    .trigger { display: inline-block; font-size: 11.5px; font-weight: 500; padding: 4px 12px; border-radius: 20px; margin-top: 6px; }
+    .trigger.disc { background: var(--purple-light); color: var(--purple-mid); }
+    .trigger.fee  { background: var(--orange-light); color: var(--orange); }
+    .trigger.comb { background: var(--blue-light); color: var(--blue); }
+    .scenario-setup { display: flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--gray-300); border-radius: 7px; overflow: hidden; margin-bottom: 20px; font-size: 12px; }
+    .setup-field { padding: 10px 16px; border-right: 1px solid var(--gray-300); flex: 1; min-width: 110px; }
+    .setup-field:last-child { border-right: none; }
+    .sf-label { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 3px; }
+    .sf-value { font-weight: 700; color: var(--gray-900); font-size: 13px; }
+    .scenario-setup.disc { background: var(--purple-light); border-color: #DDD6FE; }
+    .scenario-setup.disc .setup-field { border-right-color: #DDD6FE; }
+    .scenario-setup.disc .sf-label { color: var(--purple-mid); }
+    .scenario-setup.fee { background: var(--orange-light); border-color: #FED7AA; }
+    .scenario-setup.fee .setup-field { border-right-color: #FED7AA; }
+    .scenario-setup.fee .sf-label { color: var(--orange); }
+    .scenario-setup.comb { background: var(--blue-light); border-color: #BFDBFE; }
+    .scenario-setup.comb .setup-field { border-right-color: #BFDBFE; }
+    .scenario-setup.comb .sf-label { color: var(--blue); }
+    .mockup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 4px; }
+    .mockup-panel { border: 1px solid var(--gray-300); border-radius: 8px; overflow: hidden; }
+    .mockup-label { background: var(--gray-200); padding: 9px 16px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--gray-500); }
+    .mockup-label.qb { background: #1B6B24; color: #fff; }
+    .inv { padding: 18px 18px 14px; background: #fff; }
+    .inv-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .inv-logo { font-size: 15px; font-weight: 900; background: linear-gradient(135deg, #6B21A8, #1D4ED8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; letter-spacing: -0.3px; }
+    .inv-meta { text-align: right; font-size: 10px; color: var(--gray-500); }
+    .inv-meta strong { display: block; font-size: 12px; color: var(--gray-900); font-weight: 700; }
+    .inv hr { border: none; border-top: 1px solid var(--gray-300); margin: 10px 0; }
+    .inv table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-bottom: 10px; }
+    .inv table thead th { font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-500); padding: 5px 6px; border-bottom: 1px solid var(--gray-300); text-align: left; }
+    .inv table thead th:last-child, .inv table tbody td:last-child { text-align: right; }
+    .inv table tbody td { padding: 7px 6px; border-bottom: 1px solid var(--gray-200); vertical-align: top; }
+    .inv table tbody tr.dr td { color: var(--red); font-weight: 500; }
+    .inv table tbody tr.fr td { color: var(--amber); font-weight: 500; }
+    .inv-totals { margin-left: auto; width: 55%; font-size: 11.5px; }
+    .inv-totals table { width: 100%; }
+    .inv-totals td { padding: 3px 6px; color: var(--gray-700); }
+    .inv-totals td:last-child { text-align: right; }
+    .inv-totals tr.disc-tot td { color: var(--red); }
+    .inv-totals tr.fee-tot td { color: var(--amber); }
+    .inv-totals tr.mid td { color: var(--gray-500); font-size: 10.5px; border-top: 1px solid var(--gray-300); padding-top: 5px; }
+    .inv-totals tr.grand td { font-weight: 800; font-size: 13.5px; border-top: 2px solid var(--gray-900); padding-top: 7px; }
+    .sub-label { font-size: 10px; color: var(--gray-400); font-weight: 400; display: block; margin-top: 1px; }
+    .qb-inner { padding: 14px 16px; background: #fff; }
+    .qb-table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+    .qb-table th { background: #1B6B24; color: #fff; padding: 7px 10px; text-align: left; font-size: 10px; font-weight: 700; }
+    .qb-table th:last-child, .qb-table td:last-child { text-align: right; }
+    .qb-table td { padding: 7px 10px; border-bottom: 1px solid var(--gray-200); }
+    .qb-table tr:nth-child(even) td { background: #F6FFF6; }
+    .qb-table td.neg { color: var(--red); font-weight: 600; }
+    .qb-table td.pos-fee { color: var(--amber); font-weight: 600; }
+    .qb-note { margin-top: 12px; font-size: 11px; color: var(--gray-700); background: var(--gray-100); padding: 9px 12px; border-radius: 6px; border-left: 3px solid var(--green); }
+    .rt { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 16px; }
+    .rt th { background: var(--purple); color: #fff; padding: 10px 16px; text-align: left; font-size: 11.5px; font-weight: 600; }
+    .rt td { padding: 10px 16px; border-bottom: 1px solid var(--gray-200); vertical-align: top; line-height: 1.6; }
+    .rt tr:nth-child(even) td { background: var(--gray-100); }
+    .rt td:first-child { font-weight: 600; white-space: nowrap; }
+    .ec-body { padding: 16px 24px 22px; }
+    .ec-body p { color: var(--gray-700); margin-bottom: 8px; line-height: 1.7; }
+    .ec-body p strong { color: var(--gray-900); }
+    .rule-box { background: var(--blue-light); border-left: 4px solid var(--blue); border-radius: 0 6px 6px 0; padding: 12px 16px; margin-top: 10px; font-size: 12.5px; color: var(--blue); }
+    .od { border-left: 4px solid var(--orange); background: var(--orange-light); padding: 16px 20px; border-radius: 0 8px 8px 0; margin-bottom: 16px; }
+    .od h4 { font-size: 13px; font-weight: 700; color: var(--orange); margin-bottom: 7px; }
+    .od p { font-size: 13px; color: var(--gray-700); line-height: 1.7; }
+    .od .owner { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; background: var(--orange); color: #fff; padding: 2px 8px; border-radius: 3px; margin-bottom: 8px; }
+    .setup-callout { background: var(--purple-light); border-left: 4px solid var(--purple); border-radius: 0 8px 8px 0; padding: 14px 18px; margin-top: 18px; }
+    .setup-callout strong { color: var(--purple); font-size: 13px; }
+    .setup-callout p { color: var(--gray-700); font-size: 12.5px; margin-top: 5px; }
+    .doc-footer { border-top: 1px solid var(--gray-300); padding-top: 22px; margin-top: 52px; display: flex; justify-content: space-between; font-size: 11px; color: var(--gray-500); }
+    @media print { .doc-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .scenario { break-inside: avoid; } }
+  </style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="badge">EG-FR-2026-001</div>
+  <h1>Discount &amp; Fee Architecture</h1>
+  <p class="subtitle">Invoice display rules, all supported scenarios, and QuickBooks line-item mapping</p>
+  <div class="meta-row">
+    <span><strong>Status</strong>Draft — Pending Dominica Review</span>
+    <span><strong>Author</strong>Derek Manuel</span>
+    <span><strong>Date</strong>April 25, 2026</span>
+    <span><strong>Audience</strong>E2E Dev Team · Dominica Hurst (Accounting)</span>
+    <span><strong>Version</strong>1.0</span>
+  </div>
+</div>
+
+<div class="doc-body">
+
+  <div class="toc">
+    <h2>Contents</h2>
+    <div class="toc-grid">
+      <a href="#s1"><span class="toc-num">1.</span> Purpose &amp; Scope</a>
+      <a href="#s5"><span class="toc-num">5.</span> Combined Scenarios (Discount + Fee)</a>
+      <a href="#s2"><span class="toc-num">2.</span> Guiding Principles</a>
+      <a href="#s6"><span class="toc-num">6.</span> Edge Cases &amp; Business Rules</a>
+      <a href="#s3"><span class="toc-num">3.</span> Discount Scenarios (D1–D4)</a>
+      <a href="#s7"><span class="toc-num">7.</span> QuickBooks Mapping Summary</a>
+      <a href="#s4"><span class="toc-num">4.</span> Fee Scenarios (F1–F4)</a>
+      <a href="#s8"><span class="toc-num">8.</span> Open Decisions</a>
+    </div>
+  </div>
+
+  <!-- S1 -->
+  <div class="section" id="s1">
+    <div class="section-header"><h2>1. Purpose &amp; Scope</h2></div>
+    <p style="color:var(--gray-700);line-height:1.8;margin-bottom:12px;">This document defines the complete architecture for how discount codes and automated fees behave within ExpoGenie — from how organizers configure them, to how they display on exhibitor-facing invoices, to how every line item maps to a QuickBooks Product/Service record. The driving requirement is that <strong>product-level revenue must always be preserved at its full listed price</strong>, with discounts and fees appearing as discrete, separately reconcilable line items.</p>
+    <p style="color:var(--gray-700);line-height:1.8;margin-bottom:12px;">The immediate trigger for this work was a reconciliation issue where cart-level discount codes were collapsing invoice totals — showing only the net amount paid rather than the full product price plus discount — which broke QuickBooks product-reporting for accounting partners.</p>
+    <table class="rt" style="margin-top:20px;">
+      <thead><tr><th>Parameter</th><th>Decision</th></tr></thead>
+      <tbody>
+        <tr><td>Integration target</td><td>ExpoGenie → QuickBooks (direct). Novi excluded from this phase.</td></tr>
+        <tr><td>Promo codes per order</td><td>One (1) discount code maximum per order in v1.</td></tr>
+        <tr><td>Fees per order</td><td>One (1) automatic fee maximum per order in v1. Mirrors the single promo code constraint.</td></tr>
+        <tr><td>Out of scope</td><td>Multi-code stacking, multi-fee stacking, Novi sync, manual invoice adjustments in QB.</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:18px;font-size:12.5px;color:var(--gray-500);background:var(--gray-100);padding:12px 16px;border-radius:6px;"><strong>Sample data used throughout this document:</strong> All invoice mockups use two products — <strong>Booth 100</strong> (List Price: $1,000.00) and <strong>Booth Staff Pass</strong> (List Price: $200.00) — for a combined cart subtotal of <strong>$1,200.00</strong>.</p>
+  </div>
+
+  <!-- S2 -->
+  <div class="section" id="s2">
+    <div class="section-header"><h2>2. Guiding Principles</h2></div>
+    <table class="rt">
+      <thead><tr><th>ID</th><th>Principle</th><th>Rationale</th></tr></thead>
+      <tbody>
+        <tr><td>P1</td><td>Full product prices are always preserved on the invoice. Discounts and fees are never folded into the product price.</td><td>Required for accurate QuickBooks product-level revenue reporting.</td></tr>
+        <tr><td>P2</td><td>Every discount and every fee appears as its own distinct line item on both the ExpoGenie invoice and the QuickBooks record.</td><td>Dominica's reconciliation workflow depends on line-level visibility.</td></tr>
+        <tr><td>P3</td><td>Discounts carry a negative sign (−). Fees carry a positive sign (+). Always.</td><td>Consistent sign convention for accounting. No ambiguity.</td></tr>
+        <tr><td>P4</td><td>When a discount and a fee co-exist, the fee is calculated on the <em>post-discount subtotal</em> — the amount the customer is actually being charged.</td><td>A credit card processing fee should reflect what is being charged to the card, not the gross pre-discount amount.</td></tr>
+        <tr><td>P5</td><td>A product-level discount cannot reduce that product's line item below $0.00. A cart-level discount cannot exceed the cart subtotal.</td><td>Prevents negative invoice totals and accounting anomalies.</td></tr>
+        <tr><td>P6</td><td>Every ExpoGenie line item must map to exactly one Product/Service in QuickBooks before the sync occurs.</td><td>Orphaned line items cause QB sync failures.</td></tr>
+        <tr><td>P7</td><td>All percentage-based calculations are rounded to 2 decimal places using standard half-up rounding before being pushed to QuickBooks.</td><td>Prevents fractional-cent amounts that QuickBooks cannot process cleanly.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- S3: DISCOUNTS -->
+  <div class="section" id="s3">
+    <div class="section-header"><h2>3. Discount Scenarios</h2></div>
+    <p class="section-intro">Discount codes are created by the event organizer and applied by the exhibitor at checkout. One code per order. Four supported permutations based on <em>scope</em> (product vs. cart) and <em>type</em> (fixed dollar vs. percentage). In all cases the discount is a negative line item — never a reduction in the listed product price.</p>
+
+    <!-- D1: 100offpass -->
+    <div class="scenario" id="d1">
+      <div class="scenario-header"><span class="sbadge disc">D1</span><h3>Fixed Amount Discount — Product Level</h3></div>
+      <div class="scenario-body">
+        <div class="scenario-desc">
+          <p>A specific dollar amount discounted from one product. The code is scoped to a named product at creation time. Only that product is affected; all other items remain at full list price.</p>
+          <span class="trigger disc">Trigger: Exhibitor applies code at checkout — code is scoped to a specific product</span>
+        </div>
+        <div class="scenario-setup disc">
+          <div class="setup-field"><div class="sf-label">Code</div><div class="sf-value">100offpass</div></div>
+          <div class="setup-field"><div class="sf-label">Type</div><div class="sf-value">Fixed Amount</div></div>
+          <div class="setup-field"><div class="sf-label">Offer</div><div class="sf-value">$100.00 off</div></div>
+          <div class="setup-field"><div class="sf-label">Applies To</div><div class="sf-value">Booth Staff Pass</div></div>
+        </div>
+        <div class="mockup-grid">
+          <div class="mockup-panel">
+            <div class="mockup-label">ExpoGenie Invoice — Exhibitor View</div>
+            <div class="inv">
+              <div class="inv-top"><div class="inv-logo">ExpoGenie</div><div class="inv-meta"><strong>Invoice #10421</strong>Order Date: Apr 25, 2026</div></div>
+              <hr>
+              <table>
+                <thead><tr><th style="width:52%">Description</th><th>List Price</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td><td>$200.00</td></tr>
+                  <tr class="dr"><td>↳ Discount — Code: 100offpass<span class="sub-label">Applied to: Booth Staff Pass</span></td><td>—</td><td>−$100.00</td></tr>
+                </tbody>
+              </table>
+              <div class="inv-totals"><table>
+                <tr><td>Subtotal</td><td>$1,200.00</td></tr>
+                <tr class="disc-tot"><td>Discount</td><td>−$100.00</td></tr>
+                <tr class="grand"><td>Total Due</td><td>$1,100.00</td></tr>
+              </table></div>
+            </div>
+          </div>
+          <div class="mockup-panel">
+            <div class="mockup-label qb">QuickBooks — Line Items</div>
+            <div class="qb-inner">
+              <table class="qb-table">
+                <thead><tr><th>QB Product / Service</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td></tr>
+                  <tr><td>Booth Staff Pass — Discount</td><td class="neg">−$100.00</td></tr>
+                </tbody>
+              </table>
+              <div class="qb-note">✓ Discount maps to a dedicated sub-product of the discounted item. Booth Staff Pass nets to $100 in QB product reports. No manual reclassification needed.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- D2: 100offcart -->
+    <div class="scenario" id="d2">
+      <div class="scenario-header"><span class="sbadge disc">D2</span><h3>Fixed Amount Discount — Cart Level</h3></div>
+      <div class="scenario-body">
+        <div class="scenario-desc">
+          <p>A fixed dollar amount discounted from the cart total. Not tied to any specific product. All product prices remain untouched; the discount appears as a standalone cart-level line item.</p>
+          <span class="trigger disc">Trigger: Exhibitor applies code at checkout — code is scoped to entire cart</span>
+        </div>
+        <div class="scenario-setup disc">
+          <div class="setup-field"><div class="sf-label">Code</div><div class="sf-value">100offcart</div></div>
+          <div class="setup-field"><div class="sf-label">Type</div><div class="sf-value">Fixed Amount</div></div>
+          <div class="setup-field"><div class="sf-label">Offer</div><div class="sf-value">$100.00 off</div></div>
+          <div class="setup-field"><div class="sf-label">Applies To</div><div class="sf-value">Entire Cart</div></div>
+        </div>
+        <div class="mockup-grid">
+          <div class="mockup-panel">
+            <div class="mockup-label">ExpoGenie Invoice — Exhibitor View</div>
+            <div class="inv">
+              <div class="inv-top"><div class="inv-logo">ExpoGenie</div><div class="inv-meta"><strong>Invoice #10422</strong>Order Date: Apr 25, 2026</div></div>
+              <hr>
+              <table>
+                <thead><tr><th style="width:52%">Description</th><th>List Price</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td><td>$200.00</td></tr>
+                  <tr class="dr"><td>Cart Discount — Code: 100offcart<span class="sub-label">Applied to: Entire Order</span></td><td>—</td><td>−$100.00</td></tr>
+                </tbody>
+              </table>
+              <div class="inv-totals"><table>
+                <tr><td>Subtotal</td><td>$1,200.00</td></tr>
+                <tr class="disc-tot"><td>Discount</td><td>−$100.00</td></tr>
+                <tr class="grand"><td>Total Due</td><td>$1,100.00</td></tr>
+              </table></div>
+            </div>
+          </div>
+          <div class="mockup-panel">
+            <div class="mockup-label qb">QuickBooks — Line Items</div>
+            <div class="qb-inner">
+              <table class="qb-table">
+                <thead><tr><th>QB Product / Service</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td></tr>
+                  <tr><td>Promo Code Discount</td><td class="neg">−$100.00</td></tr>
+                </tbody>
+              </table>
+              <div class="qb-note">✓ Cart discount maps to a shared "Promo Code Discount" QB product. Individual product revenues remain at full list price. Dominica can run a "Promo Code Discount" report to identify all cart-level discounts for review.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- D3: 10percentpass -->
+    <div class="scenario" id="d3">
+      <div class="scenario-header"><span class="sbadge disc">D3</span><h3>Percentage Discount — Product Level</h3></div>
+      <div class="scenario-body">
+        <div class="scenario-desc">
+          <p>A percentage off a specific product. The dollar amount is calculated at checkout against the product's list price. The calculated dollar amount — not the percentage — is pushed to QuickBooks.</p>
+          <span class="trigger disc">Trigger: Exhibitor applies code at checkout — code is scoped to a specific product with % type</span>
+        </div>
+        <div class="scenario-setup disc">
+          <div class="setup-field"><div class="sf-label">Code</div><div class="sf-value">10percentpass</div></div>
+          <div class="setup-field"><div class="sf-label">Type</div><div class="sf-value">Percentage</div></div>
+          <div class="setup-field"><div class="sf-label">Offer</div><div class="sf-value">10% off</div></div>
+          <div class="setup-field"><div class="sf-label">Applies To</div><div class="sf-value">Booth Staff Pass</div></div>
+          <div class="setup-field"><div class="sf-label">Calculated Amount</div><div class="sf-value">−$20.00</div></div>
+        </div>
+        <div class="mockup-grid">
+          <div class="mockup-panel">
+            <div class="mockup-label">ExpoGenie Invoice — Exhibitor View</div>
+            <div class="inv">
+              <div class="inv-top"><div class="inv-logo">ExpoGenie</div><div class="inv-meta"><strong>Invoice #10423</strong>Order Date: Apr 25, 2026</div></div>
+              <hr>
+              <table>
+                <thead><tr><th style="width:52%">Description</th><th>List Price</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td><td>$200.00</td></tr>
+                  <tr class="dr"><td>↳ Discount — Code: 10percentpass (10%)<span class="sub-label">Applied to: Booth Staff Pass · 10% × $200.00</span></td><td>—</td><td>−$20.00</td></tr>
+                </tbody>
+              </table>
+              <div class="inv-totals"><table>
+                <tr><td>Subtotal</td><td>$1,200.00</td></tr>
+                <tr class="disc-tot"><td>Discount (10% off Pass)</td><td>−$20.00</td></tr>
+                <tr class="grand"><td>Total Due</td><td>$1,180.00</td></tr>
+              </table></div>
+            </div>
+          </div>
+          <div class="mockup-panel">
+            <div class="mockup-label qb">QuickBooks — Line Items</div>
+            <div class="qb-inner">
+              <table class="qb-table">
+                <thead><tr><th>QB Product / Service</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td></tr>
+                  <tr><td>Booth Staff Pass — Discount</td><td class="neg">−$20.00</td></tr>
+                </tbody>
+              </table>
+              <div class="qb-note">✓ Calculated dollar amount pushed to QB — not the raw percentage. Maps to "Booth Staff Pass — Discount." Rounding applied per Principle P7.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- D4: 10percentcart -->
+    <div class="scenario" id="d4">
+      <div class="scenario-header"><span class="sbadge disc">D4</span><h3>Percentage Discount — Cart Level</h3></div>
+      <div class="scenario-body">
+        <div class="scenario-desc">
+          <p>A percentage off the entire cart subtotal. Calculated after all product prices are summed, before any fees are applied. Calculated dollar amount is pushed to QuickBooks.</p>
+          <span class="trigger disc">Trigger: Exhibitor applies code at checkout — code is scoped to cart with % type</span>
+        </div>
+        <div class="scenario-setup disc">
+          <div class="setup-field"><div class="sf-label">Code</div><div class="sf-value">10percentcart</div></div>
+          <div class="setup-field"><div class="sf-label">Type</div><div class="sf-value">Percentage</div></div>
+          <div class="setup-field"><div class="sf-label">Offer</div><div class="sf-value">10% off</div></div>
+          <div class="setup-field"><div class="sf-label">Applies To</div><div class="sf-value">Entire Cart</div></div>
+          <div class="setup-field"><div class="sf-label">Calculated Amount</div><div class="sf-value">−$120.00</div></div>
+        </div>
+        <div class="mockup-grid">
+          <div class="mockup-panel">
+            <div class="mockup-label">ExpoGenie Invoice — Exhibitor View</div>
+            <div class="inv">
+              <div class="inv-top"><div class="inv-logo">ExpoGenie</div><div class="inv-meta"><strong>Invoice #10424</strong>Order Date: Apr 25, 2026</div></div>
+              <hr>
+              <table>
+                <thead><tr><th style="width:52%">Description</th><th>List Price</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td><td>$200.00</td></tr>
+                  <tr class="dr"><td>Cart Discount — Code: 10percentcart (10%)<span class="sub-label">Applied to: Entire Order · 10% × $1,200.00</span></td><td>—</td><td>−$120.00</td></tr>
+                </tbody>
+              </table>
+              <div class="inv-totals"><table>
+                <tr><td>Subtotal</td><td>$1,200.00</td></tr>
+                <tr class="disc-tot"><td>Discount (10% off Order)</td><td>−$120.00</td></tr>
+                <tr class="grand"><td>Total Due</td><td>$1,080.00</td></tr>
+              </table></div>
+            </div>
+          </div>
+          <div class="mockup-panel">
+            <div class="mockup-label qb">QuickBooks — Line Items</div>
+            <div class="qb-inner">
+              <table class="qb-table">
+                <thead><tr><th>QB Product / Service</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td></tr>
+                  <tr><td>Promo Code Discount</td><td class="neg">−$120.00</td></tr>
+                </tbody>
+              </table>
+              <div class="qb-note">✓ Calculated dollar amount pushed to QB as "Promo Code Discount." Gross product revenues remain intact for reporting.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S4: FEES -->
+  <div class="section" id="s4">
+    <div class="section-header"><h2>4. Fee Scenarios</h2></div>
+    <p class="section-intro">Fees are automatically applied by ExpoGenie based on conditions defined by the event organizer — such as payment method, product type, or registration timing. Unlike discount codes (which the exhibitor applies), fees are system-triggered. <strong>One fee maximum per order in v1.</strong> Fees are always positive amounts that increase the total owed and are never folded into the product price.</p>
+
+    <!-- F1: 10feepass -->
+    <div class="scenario" id="f1">
+      <div class="scenario-header"><span class="sbadge fee">F1</span><h3>Fixed Amount Fee — Product Level</h3></div>
+      <div class="scenario-body">
+        <div class="scenario-desc">
+          <p>A flat dollar fee automatically added when a specific product is purchased.</p>
+          <span class="trigger fee">Trigger: A product with an attached fee rule is added to the cart</span>
+        </div>
+        <div class="scenario-setup fee">
+          <div class="setup-field"><div class="sf-label">Fee Rule ID</div><div class="sf-value">10feepass</div></div>
+          <div class="setup-field"><div class="sf-label">Fee Name</div><div class="sf-value">Staff Pass Service Fee</div></div>
+          <div class="setup-field"><div class="sf-label">Type</div><div class="sf-value">Fixed Amount</div></div>
+          <div class="setup-field"><div class="sf-label">Amount</div><div class="sf-value">$10.00</div></div>
+          <div class="setup-field"><div class="sf-label">Applies To</div><div class="sf-value">Booth Staff Pass</div></div>
+        </div>
+        <div class="mockup-grid">
+          <div class="mockup-panel">
+            <div class="mockup-label">ExpoGenie Invoice — Exhibitor View</div>
+            <div class="inv">
+              <div class="inv-top"><div class="inv-logo">ExpoGenie</div><div class="inv-meta"><strong>Invoice #10425</strong>Order Date: Apr 25, 2026</div></div>
+              <hr>
+              <table>
+                <thead><tr><th style="width:52%">Description</th><th>List Price</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td><td>$200.00</td></tr>
+                  <tr class="fr"><td>↳ Staff Pass Service Fee<span class="sub-label">Applied to: Booth Staff Pass</span></td><td>$10.00</td><td>$10.00</td></tr>
+                </tbody>
+              </table>
+              <div class="inv-totals"><table>
+                <tr><td>Subtotal</td><td>$1,200.00</td></tr>
+                <tr class="fee-tot"><td>Fees</td><td>+$10.00</td></tr>
+                <tr class="grand"><td>Total Due</td><td>$1,210.00</td></tr>
+              </table></div>
+            </div>
+          </div>
+          <div class="mockup-panel">
+            <div class="mockup-label qb">QuickBooks — Line Items</div>
+            <div class="qb-inner">
+              <table class="qb-table">
+                <thead><tr><th>QB Product / Service</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td></tr>
+                  <tr><td>Staff Pass Service Fee</td><td class="pos-fee">$10.00</td></tr>
+                </tbody>
+              </table>
+              <div class="qb-note">✓ Fee maps to its own QB product. Booth Staff Pass revenue is not inflated. Fee revenue is tracked separately in QB reports.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- F2: 10feecart -->
+    <div class="scenario" id="f2">
+      <div class="scenario-header"><span class="sbadge fee">F2</span><h3>Fixed Amount Fee — Cart Level</h3></div>
+      <div class="scenario-body">
+        <div class="scenario-desc">
+          <p>A flat dollar fee added to every order regardless of which products are purchased.</p>
+          <span class="trigger fee">Trigger: Order is submitted — an event-level fixed fee rule is active</span>
+        </div>
+        <div class="scenario-setup fee">
+          <div class="setup-field"><div class="sf-label">Fee Rule ID</div><div class="sf-value">10feecart</div></div>
+          <div class="setup-field"><div class="sf-label">Fee Name</div><div class="sf-value">Order Service Fee</div></div>
+          <div class="setup-field"><div class="sf-label">Type</div><div class="sf-value">Fixed Amount</div></div>
+          <div class="setup-field"><div class="sf-label">Amount</div><div class="sf-value">$10.00</div></div>
+          <div class="setup-field"><div class="sf-label">Applies To</div><div class="sf-value">Entire Order</div></div>
+        </div>
+        <div class="mockup-grid">
+          <div class="mockup-panel">
+            <div class="mockup-label">ExpoGenie Invoice — Exhibitor View</div>
+            <div class="inv">
+              <div class="inv-top"><div class="inv-logo">ExpoGenie</div><div class="inv-meta"><strong>Invoice #10426</strong>Order Date: Apr 25, 2026</div></div>
+              <hr>
+              <table>
+                <thead><tr><th style="width:52%">Description</th><th>List Price</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td><td>$200.00</td></tr>
+                  <tr class="fr"><td>Order Service Fee<span class="sub-label">Applied to: Entire Order</span></td><td>$10.00</td><td>$10.00</td></tr>
+                </tbody>
+              </table>
+              <div class="inv-totals"><table>
+                <tr><td>Subtotal</td><td>$1,200.00</td></tr>
+                <tr class="fee-tot"><td>Fees</td><td>+$10.00</td></tr>
+                <tr class="grand"><td>Total Due</td><td>$1,210.00</td></tr>
+              </table></div>
+            </div>
+          </div>
+          <div class="mockup-panel">
+            <div class="mockup-label qb">QuickBooks — Line Items</div>
+            <div class="qb-inner">
+              <table class="qb-table">
+                <thead><tr><th>QB Product / Service</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td></tr>
+                  <tr><td>Order Service Fee</td><td class="pos-fee">$10.00</td></tr>
+                </tbody>
+              </table>
+              <div class="qb-note">✓ Fee maps to its own QB product. Product revenues remain clean. Fee revenue is separately trackable across all orders.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- F3: 10perfeecart -->
+    <div class="scenario" id="f3">
+      <div class="scenario-header"><span class="sbadge fee">F3</span><h3>Percentage Fee — Cart Level</h3></div>
+      <div class="scenario-body">
+        <div class="scenario-desc">
+          <p>A percentage-based fee applied to the order total. Per Principle P4, always calculated on the <em>post-discount subtotal</em> when a discount is also present on the same order.</p>
+          <span class="trigger fee">Trigger: Customer selects credit card at payment — or an event-level % fee rule is active</span>
+        </div>
+        <div class="scenario-setup fee">
+          <div class="setup-field"><div class="sf-label">Fee Rule ID</div><div class="sf-value">10perfeecart</div></div>
+          <div class="setup-field"><div class="sf-label">Fee Name</div><div class="sf-value">Credit Card Processing Fee</div></div>
+          <div class="setup-field"><div class="sf-label">Type</div><div class="sf-value">Percentage</div></div>
+          <div class="setup-field"><div class="sf-label">Rate</div><div class="sf-value">10%</div></div>
+          <div class="setup-field"><div class="sf-label">Applies To</div><div class="sf-value">Order Total</div></div>
+          <div class="setup-field"><div class="sf-label">Calculated Amount</div><div class="sf-value">$120.00</div></div>
+        </div>
+        <div class="mockup-grid">
+          <div class="mockup-panel">
+            <div class="mockup-label">ExpoGenie Invoice — Exhibitor View</div>
+            <div class="inv">
+              <div class="inv-top"><div class="inv-logo">ExpoGenie</div><div class="inv-meta"><strong>Invoice #10427</strong>Order Date: Apr 25, 2026</div></div>
+              <hr>
+              <table>
+                <thead><tr><th style="width:52%">Description</th><th>List Price</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td><td>$200.00</td></tr>
+                  <tr class="fr"><td>Credit Card Processing Fee (10%)<span class="sub-label">Applied to: $1,200.00 order total · 10% × $1,200.00</span></td><td>—</td><td>$120.00</td></tr>
+                </tbody>
+              </table>
+              <div class="inv-totals"><table>
+                <tr><td>Subtotal</td><td>$1,200.00</td></tr>
+                <tr class="fee-tot"><td>CC Processing Fee (10%)</td><td>+$120.00</td></tr>
+                <tr class="grand"><td>Total Due</td><td>$1,320.00</td></tr>
+              </table></div>
+            </div>
+          </div>
+          <div class="mockup-panel">
+            <div class="mockup-label qb">QuickBooks — Line Items</div>
+            <div class="qb-inner">
+              <table class="qb-table">
+                <thead><tr><th>QB Product / Service</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td></tr>
+                  <tr><td>Credit Card Processing Fee</td><td class="pos-fee">$120.00</td></tr>
+                </tbody>
+              </table>
+              <div class="qb-note">✓ Calculated dollar amount pushed to QB — not the raw %. If a discount is also present on the order, the fee base is the post-discount total (see Scenarios C1, C2).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- F4: 10perfeepass -->
+    <div class="scenario" id="f4">
+      <div class="scenario-header"><span class="sbadge fee">F4</span><h3>Percentage Fee — Product Level</h3></div>
+      <div class="scenario-body">
+        <div class="scenario-desc">
+          <p>A percentage-based fee tied to a specific product's list price. Calculated on the product's list price at the time of purchase.</p>
+          <span class="trigger fee">Trigger: A product with a % fee rule attached is added to the cart</span>
+        </div>
+        <div class="scenario-setup fee">
+          <div class="setup-field"><div class="sf-label">Fee Rule ID</div><div class="sf-value">10perfeepass</div></div>
+          <div class="setup-field"><div class="sf-label">Fee Name</div><div class="sf-value">Staff Pass Handling Fee</div></div>
+          <div class="setup-field"><div class="sf-label">Type</div><div class="sf-value">Percentage</div></div>
+          <div class="setup-field"><div class="sf-label">Rate</div><div class="sf-value">10%</div></div>
+          <div class="setup-field"><div class="sf-label">Applies To</div><div class="sf-value">Booth Staff Pass</div></div>
+          <div class="setup-field"><div class="sf-label">Calculated Amount</div><div class="sf-value">$20.00</div></div>
+        </div>
+        <div class="mockup-grid">
+          <div class="mockup-panel">
+            <div class="mockup-label">ExpoGenie Invoice — Exhibitor View</div>
+            <div class="inv">
+              <div class="inv-top"><div class="inv-logo">ExpoGenie</div><div class="inv-meta"><strong>Invoice #10428</strong>Order Date: Apr 25, 2026</div></div>
+              <hr>
+              <table>
+                <thead><tr><th style="width:52%">Description</th><th>List Price</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td><td>$200.00</td></tr>
+                  <tr class="fr"><td>↳ Staff Pass Handling Fee (10%)<span class="sub-label">Applied to: Booth Staff Pass · 10% × $200.00</span></td><td>—</td><td>$20.00</td></tr>
+                </tbody>
+              </table>
+              <div class="inv-totals"><table>
+                <tr><td>Subtotal</td><td>$1,200.00</td></tr>
+                <tr class="fee-tot"><td>Handling Fee (10%)</td><td>+$20.00</td></tr>
+                <tr class="grand"><td>Total Due</td><td>$1,220.00</td></tr>
+              </table></div>
+            </div>
+          </div>
+          <div class="mockup-panel">
+            <div class="mockup-label qb">QuickBooks — Line Items</div>
+            <div class="qb-inner">
+              <table class="qb-table">
+                <thead><tr><th>QB Product / Service</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td></tr>
+                  <tr><td>Staff Pass Handling Fee</td><td class="pos-fee">$20.00</td></tr>
+                </tbody>
+              </table>
+              <div class="qb-note">✓ Calculated dollar amount pushed to QB. Maps to "Staff Pass Handling Fee" QB product. See Open Decision OD-02 for behavior when a product-level discount is also applied to the same item.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S5: COMBINED -->
+  <div class="section" id="s5">
+    <div class="section-header"><h2>5. Combined Scenarios</h2></div>
+    <p class="section-intro">These scenarios cover orders where a discount code and an automatic fee apply simultaneously. Calculation order is always: <strong>(1) Sum products → (2) Apply discount → (3) Calculate fee on post-discount total → (4) Final Total.</strong></p>
+
+    <!-- C1 -->
+    <div class="scenario" id="c1">
+      <div class="scenario-header"><span class="sbadge comb">C1</span><h3>Cart-Level Discount + Percentage Cart Fee — Most Common Real-World Scenario</h3></div>
+      <div class="scenario-body">
+        <div class="scenario-desc">
+          <p>Exhibitor applies a cart-level promo code, then pays by credit card triggering a 10% processing fee. The fee is calculated on the post-discount total ($1,100), not the gross subtotal ($1,200).</p>
+          <span class="trigger comb">Trigger: Cart-scoped promo code applied + credit card selected at payment</span>
+        </div>
+        <div class="scenario-setup comb">
+          <div class="setup-field"><div class="sf-label">Discount Code</div><div class="sf-value">100offcart</div></div>
+          <div class="setup-field"><div class="sf-label">Discount Offer</div><div class="sf-value">$100.00 off cart</div></div>
+          <div class="setup-field"><div class="sf-label">Fee</div><div class="sf-value">Credit Card Processing Fee</div></div>
+          <div class="setup-field"><div class="sf-label">Fee Rate</div><div class="sf-value">10% of post-discount total</div></div>
+          <div class="setup-field"><div class="sf-label">Fee Amount</div><div class="sf-value">$110.00</div></div>
+        </div>
+        <div class="mockup-grid">
+          <div class="mockup-panel">
+            <div class="mockup-label">ExpoGenie Invoice — Exhibitor View</div>
+            <div class="inv">
+              <div class="inv-top"><div class="inv-logo">ExpoGenie</div><div class="inv-meta"><strong>Invoice #10429</strong>Order Date: Apr 25, 2026</div></div>
+              <hr>
+              <table>
+                <thead><tr><th style="width:52%">Description</th><th>List Price</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td><td>$200.00</td></tr>
+                  <tr class="dr"><td>Cart Discount — Code: 100offcart<span class="sub-label">Applied to: Entire Order</span></td><td>—</td><td>−$100.00</td></tr>
+                  <tr class="fr"><td>Credit Card Processing Fee (10%)<span class="sub-label">Applied to: $1,100.00 post-discount total · 10% × $1,100.00</span></td><td>—</td><td>$110.00</td></tr>
+                </tbody>
+              </table>
+              <div class="inv-totals"><table>
+                <tr><td>Subtotal</td><td>$1,200.00</td></tr>
+                <tr class="disc-tot"><td>Discount</td><td>−$100.00</td></tr>
+                <tr class="mid"><td>Post-Discount Total</td><td>$1,100.00</td></tr>
+                <tr class="fee-tot"><td>CC Processing Fee (10%)</td><td>+$110.00</td></tr>
+                <tr class="grand"><td>Total Due</td><td>$1,210.00</td></tr>
+              </table></div>
+            </div>
+          </div>
+          <div class="mockup-panel">
+            <div class="mockup-label qb">QuickBooks — Line Items</div>
+            <div class="qb-inner">
+              <table class="qb-table">
+                <thead><tr><th>QB Product / Service</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td></tr>
+                  <tr><td>Promo Code Discount</td><td class="neg">−$100.00</td></tr>
+                  <tr><td>Credit Card Processing Fee</td><td class="pos-fee">$110.00</td></tr>
+                </tbody>
+              </table>
+              <div class="qb-note">✓ Four clean QB line items. Products at full list price. Discount and fee each have their own QB product. No manual reclassification required. QB net = $1,210.00.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C2 -->
+    <div class="scenario" id="c2">
+      <div class="scenario-header"><span class="sbadge comb">C2</span><h3>Product-Level Discount + Percentage Cart Fee</h3></div>
+      <div class="scenario-body">
+        <div class="scenario-desc">
+          <p>A product-specific discount reduces the order total. The post-discount total ($1,100) then becomes the base for the percentage cart fee calculation.</p>
+          <span class="trigger comb">Trigger: Product-scoped promo code applied + credit card selected at payment</span>
+        </div>
+        <div class="scenario-setup comb">
+          <div class="setup-field"><div class="sf-label">Discount Code</div><div class="sf-value">100offpass</div></div>
+          <div class="setup-field"><div class="sf-label">Discount Offer</div><div class="sf-value">$100.00 off Booth Staff Pass</div></div>
+          <div class="setup-field"><div class="sf-label">Fee</div><div class="sf-value">Credit Card Processing Fee</div></div>
+          <div class="setup-field"><div class="sf-label">Fee Rate</div><div class="sf-value">10% of post-discount total</div></div>
+          <div class="setup-field"><div class="sf-label">Fee Amount</div><div class="sf-value">$110.00</div></div>
+        </div>
+        <div class="mockup-grid">
+          <div class="mockup-panel">
+            <div class="mockup-label">ExpoGenie Invoice — Exhibitor View</div>
+            <div class="inv">
+              <div class="inv-top"><div class="inv-logo">ExpoGenie</div><div class="inv-meta"><strong>Invoice #10430</strong>Order Date: Apr 25, 2026</div></div>
+              <hr>
+              <table>
+                <thead><tr><th style="width:52%">Description</th><th>List Price</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td><td>$200.00</td></tr>
+                  <tr class="dr"><td>↳ Discount — Code: 100offpass<span class="sub-label">Applied to: Booth Staff Pass</span></td><td>—</td><td>−$100.00</td></tr>
+                  <tr class="fr"><td>Credit Card Processing Fee (10%)<span class="sub-label">Applied to: $1,100.00 post-discount total · 10% × $1,100.00</span></td><td>—</td><td>$110.00</td></tr>
+                </tbody>
+              </table>
+              <div class="inv-totals"><table>
+                <tr><td>Subtotal</td><td>$1,200.00</td></tr>
+                <tr class="disc-tot"><td>Discount</td><td>−$100.00</td></tr>
+                <tr class="mid"><td>Post-Discount Total</td><td>$1,100.00</td></tr>
+                <tr class="fee-tot"><td>CC Processing Fee (10%)</td><td>+$110.00</td></tr>
+                <tr class="grand"><td>Total Due</td><td>$1,210.00</td></tr>
+              </table></div>
+            </div>
+          </div>
+          <div class="mockup-panel">
+            <div class="mockup-label qb">QuickBooks — Line Items</div>
+            <div class="qb-inner">
+              <table class="qb-table">
+                <thead><tr><th>QB Product / Service</th><th>Amount</th></tr></thead>
+                <tbody>
+                  <tr><td>Booth 100</td><td>$1,000.00</td></tr>
+                  <tr><td>Booth Staff Pass</td><td>$200.00</td></tr>
+                  <tr><td>Booth Staff Pass — Discount</td><td class="neg">−$100.00</td></tr>
+                  <tr><td>Credit Card Processing Fee</td><td class="pos-fee">$110.00</td></tr>
+                </tbody>
+              </table>
+              <div class="qb-note">✓ Product-level discount maps under Booth Staff Pass. CC fee maps to its own QB product based on the post-discount total. All four QB line items are clean and reportable. QB net = $1,210.00.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S6: EDGE CASES -->
+  <div class="section" id="s6">
+    <div class="section-header"><h2>6. Edge Cases &amp; Business Rules</h2></div>
+
+    <div class="scenario" id="e1">
+      <div class="scenario-header"><span class="sbadge edge">E1</span><h3>Discount Amount Exceeds Product Price (Product-Level Code)</h3></div>
+      <div class="ec-body">
+        <p><strong>Situation:</strong> An organizer creates a fixed product-level discount code for $300 off the Booth Staff Pass, which is listed at $200. The discount would put the line item below $0.</p>
+        <p><strong>Rule:</strong> ExpoGenie validates this at discount code creation time and blocks the code from being saved. Error shown: <em>"Discount amount ($300.00) cannot exceed the product list price ($200.00). Use a 100% percentage code to fully comp this product."</em></p>
+        <div class="rule-box">Validation should also re-run at checkout in case the product price changed after the code was created. If the product price has since dropped below the discount amount, the exhibitor sees a message that the code is invalid and is prompted to contact the organizer. (See Open Decision OD-04.)</div>
+      </div>
+    </div>
+
+    <div class="scenario" id="e2">
+      <div class="scenario-header"><span class="sbadge edge">E2</span><h3>Discount Amount Exceeds Cart Total (Cart-Level Code)</h3></div>
+      <div class="ec-body">
+        <p><strong>Situation:</strong> A cart-level fixed discount code for $1,500 is applied to a cart totaling $1,200. The total would go negative.</p>
+        <p><strong>Rule:</strong> ExpoGenie caps the discount at the cart subtotal. Invoice shows the discount equal to the subtotal, resulting in a $0.00 Total Due. Exhibitor sees: <em>"Your discount has been applied. No payment is required for this order."</em></p>
+        <div class="rule-box">The QuickBooks record still shows all product lines at full list price with the capped discount line — preserving an accurate record of what was sold and fully comped.</div>
+      </div>
+    </div>
+
+    <div class="scenario" id="e3">
+      <div class="scenario-header"><span class="sbadge edge">E3</span><h3>Full Comp — 100% Discount</h3></div>
+      <div class="ec-body">
+        <p><strong>Situation:</strong> An exhibitor is fully comped — a 100% discount code or a fixed code equal to the full cart total is applied.</p>
+        <p><strong>Rule:</strong> Invoice shows all products at full list price with a discount line equal to the subtotal. Total Due = $0.00. No payment is collected.</p>
+        <p><strong>Fee behavior:</strong> If a percentage cart fee would normally apply, it is suppressed when Total Due is $0.00 — nothing is being charged, so the fee base is zero.</p>
+        <div class="rule-box">The QB record still contains all product revenue lines and the offsetting discount line — preserving an accurate accounting record of what was sold, what it was worth, and that it was comped.</div>
+      </div>
+    </div>
+
+    <div class="scenario" id="e4">
+      <div class="scenario-header"><span class="sbadge edge">E4</span><h3>Dynamic Recalculation — Discount Applied After Fee Was Already Displayed</h3></div>
+      <div class="ec-body">
+        <p><strong>Situation:</strong> An exhibitor is shown a CC processing fee based on the gross subtotal. They then enter a promo code, reducing the subtotal. The fee must recalculate.</p>
+        <p><strong>Rule:</strong> Any time the cart changes (product added/removed, promo code applied/removed, payment method changed), the system recalculates the full sequence: (1) Sum products, (2) Apply discount, (3) Calculate fee on post-discount total. Fee amounts update dynamically. The exhibitor always sees the correct final total before confirming payment.</p>
+      </div>
+    </div>
+
+    <div class="scenario" id="e5">
+      <div class="scenario-header"><span class="sbadge edge">E5</span><h3>Percentage Rounding</h3></div>
+      <div class="ec-body">
+        <p><strong>Situation:</strong> A percentage calculation produces a fractional cent (e.g., 10% of $1,233.33 = $123.333...).</p>
+        <p><strong>Rule:</strong> All percentage-based discount and fee amounts are rounded to 2 decimal places using standard half-up rounding before display and before QB push. The rounded dollar amount is the value of record. QuickBooks receives only clean 2-decimal values.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- S7: QB MAPPING -->
+  <div class="section" id="s7">
+    <div class="section-header"><h2>7. QuickBooks Mapping Summary</h2></div>
+    <p class="section-intro">Every ExpoGenie line item type must have a corresponding Product/Service pre-configured in QuickBooks. The table below defines the full set of required QB products, who is responsible for creating them, and the sign convention for each.</p>
+    <table class="rt">
+      <thead><tr><th>Line Item Type</th><th>ExpoGenie Invoice Label</th><th>QB Product / Service Name</th><th>Sign</th><th>Who Configures</th></tr></thead>
+      <tbody>
+        <tr><td>Product (existing)</td><td>e.g., "Booth 100"</td><td>Existing product mapping — no change required</td><td style="color:var(--green);font-weight:700;">+</td><td>Client (already configured)</td></tr>
+        <tr><td>Product-level discount</td><td>"↳ Discount — Code: [CODE]"</td><td>[Product Name] — Discount<br><span style="font-size:11px;color:var(--gray-500)">e.g., "Booth Staff Pass — Discount"</span></td><td style="color:var(--red);font-weight:700;">−</td><td>E2E creates one per discountable product type</td></tr>
+        <tr><td>Cart-level discount</td><td>"Cart Discount — Code: [CODE]"</td><td>Promo Code Discount<br><span style="font-size:11px;color:var(--gray-500)">Shared across all events</span></td><td style="color:var(--red);font-weight:700;">−</td><td>E2E creates once globally</td></tr>
+        <tr><td>Product-level fee (fixed $)</td><td>"↳ [Fee Name]"</td><td>[Fee Name]<br><span style="font-size:11px;color:var(--gray-500)">e.g., "Staff Pass Service Fee"</span></td><td style="color:var(--amber);font-weight:700;">+</td><td>Client names fee in ExpoGenie; E2E maps to matching QB product</td></tr>
+        <tr><td>Product-level fee (%)</td><td>"↳ [Fee Name] (X%)"</td><td>[Fee Name]<br><span style="font-size:11px;color:var(--gray-500)">e.g., "Staff Pass Handling Fee"</span></td><td style="color:var(--amber);font-weight:700;">+</td><td>Client names fee in ExpoGenie; E2E maps to matching QB product</td></tr>
+        <tr><td>Cart-level fee (fixed $)</td><td>"[Fee Name]"</td><td>[Fee Name]<br><span style="font-size:11px;color:var(--gray-500)">e.g., "Order Service Fee"</span></td><td style="color:var(--amber);font-weight:700;">+</td><td>Client names fee in ExpoGenie; E2E maps to matching QB product</td></tr>
+        <tr><td>Cart-level fee (%)</td><td>"[Fee Name] (X%)"</td><td>[Fee Name]<br><span style="font-size:11px;color:var(--gray-500)">e.g., "Credit Card Processing Fee"</span></td><td style="color:var(--amber);font-weight:700;">+</td><td>Client names fee in ExpoGenie; E2E maps to matching QB product</td></tr>
+      </tbody>
+    </table>
+    <div class="setup-callout">
+      <strong>⚠️ QB Setup Dependency — Sync Will Fail Without This</strong>
+      <p>If a discount or fee line item is pushed to QuickBooks before its corresponding QB Product/Service exists, the sync will fail and the transaction will not be recorded. ExpoGenie must surface a configuration warning during event setup if any required QB mapping is missing — before the event goes live.</p>
+    </div>
+  </div>
+
+  <!-- S8: OPEN DECISIONS -->
+  <div class="section" id="s8">
+    <div class="section-header"><h2>8. Open Decisions</h2></div>
+    <p class="section-intro">These items require explicit confirmation before E2E begins development. No development should proceed on the affected scenarios until these are resolved.</p>
+
+    <div class="od">
+      <div class="owner">OD-01 · Dominica to Confirm</div>
+      <h4>Product-Level Discount QB Mapping: Sub-Product vs. Shared Product</h4>
+      <p>This document proposes that product-level discounts map to a unique QB product per product type (e.g., "Booth Staff Pass — Discount"). This gives clean per-product revenue and discount reporting in QB without manual reclassification. The alternative is a single shared "Promo Code Discount" product for all discount types (simpler QB setup, less granular reporting). <strong>Dominica needs to confirm which she prefers</strong> given her QB reporting workflows.</p>
+    </div>
+
+    <div class="od">
+      <div class="owner">OD-02 · E2E + Derek to Confirm</div>
+      <h4>Product-Level % Fee Calculation When a Product Discount Also Applies to the Same Item</h4>
+      <p>Scenario F4 combined with D1 or D3 creates ambiguity: if a Booth Staff Pass is $200 with a $100 discount applied, and a 10% handling fee is on the pass — is the fee 10% of $200 (full list price) or 10% of $100 (post-discount price)? Principle P4 was written for cart-level fees. This needs an explicit decision before development.</p>
+    </div>
+
+    <div class="od">
+      <div class="owner">OD-03 · Derek to Confirm</div>
+      <h4>Credit Card Fee Trigger: At Checkout or Post-Payment?</h4>
+      <p>For the credit card processing fee (F3, C1, C2): does the fee appear on the invoice at checkout when the exhibitor selects "Pay by Credit Card" — before payment is confirmed? Or only after payment clears? Showing it at checkout is better UX (no surprises) but requires the fee to be conditionally displayed based on payment method selection. Derek to confirm preferred behavior.</p>
+    </div>
+
+    <div class="od">
+      <div class="owner">OD-04 · E2E to Confirm</div>
+      <h4>Discount Validation: Creation Time vs. Checkout Time vs. Both</h4>
+      <p>Edge Case E1 proposes validating product-level discount amounts against the product list price at code creation time. However, list prices can change after a code is created. Should validation also run at checkout? If yes, what does the exhibitor see when a previously valid code is now invalid? E2E to confirm feasibility and recommended handling.</p>
+    </div>
+  </div>
+
+  <div class="doc-footer">
+    <span>EG-FR-2026-001 — Discount &amp; Fee Architecture — v1.0</span>
+    <span>ExpoGenie © 2026 — Confidential</span>
+  </div>
+
+</div>
+</body>
+</html>
